@@ -1,0 +1,5 @@
+# Generated isolated SillyTavern runtime used only for local verification.
+verification/tavern-runtime/
+
+# Local archive kept as a rollback copy while refreshing the distributable ZIP.
+PaintAI-SillyTavern-1.0.0.before-tutorial.zip
