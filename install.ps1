@@ -19,7 +19,7 @@ if ($config -notmatch '(?m)^enableServerPlugins:\s*(true|false)\s*(?:#.*)?$') {
     throw 'Cannot safely locate enableServerPlugins in config.yaml.'
 }
 $plan = @(
-    @{ Source='extension'; Target='public\scripts\extensions\third-party\paintai'; Files=@('manifest.json','index.js','api.js','chat.js','style.css') },
+    @{ Source='extension'; Target='public\scripts\extensions\third-party\paintai'; Files=@('manifest.json','index.js','api.js','chat.js','scene.js','style.css') },
     @{ Source='server-plugin'; Target='plugins\paintai-bridge'; Files=@('index.mjs','config.json') }
 )
 # Validate all sources before touching the target installation.
