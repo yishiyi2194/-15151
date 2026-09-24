@@ -1,6 +1,8 @@
 # PaintAI 酒馆文生图教程
 
-本教程说明如何在 Windows 版 SillyTavern 中填写 PaintAI 网站 URL 和项目 Token，直接调用网站额度生成图片。
+本教程说明如何在 SillyTavern 中通过 Git URL 安装 PaintAI 前端扩展，填写网站 URL 和项目 Token，并用世界书让 AI 输出图片标签后生成图片。
+
+本教程和插件代码是围绕 PaintAI 接口独立编写的；参考资料只用于说明酒馆的通用安装与世界书流程。
 
 ## 一、工作方式
 
@@ -20,7 +22,13 @@
 
 ## 三、安装插件
 
-1. 解压 `PaintAI-SillyTavern-1.0.0.zip`。
+### A. Git URL 安装前端
+
+把包含本项目根目录 `manifest.json` 的 Git 仓库地址粘贴到酒馆的“扩展安装 / 从 Git URL 安装”入口，选择默认分支并安装。安装完成后刷新页面。此步骤只安装前端扩展。
+
+### B. 安装服务端桥接
+
+1. 解压插件包。
 2. 在解压后的插件目录打开 PowerShell。
 3. 执行下面的命令：
 
@@ -66,9 +74,23 @@ https://www.r67831767.nyat.app:19088
 /paintai 1girl, garden, sunlight
 ```
 
-默认只生成一张文生图，不会自动读取聊天内容，也不会接管酒馆原生 `/imagine` 命令。
+默认只生成一张文生图，不会接管酒馆原生 `/imagine` 命令。
 
-## 六、手机使用
+## 六、世界书文字出图
+
+1. 导入 `worldbook/paintai-worldbook.json` 并启用世界书。
+2. 扩展中勾选“检测到图片标签后自动生成”。默认关闭，首次建议保持关闭测试。
+3. AI 需要插图时输出：
+
+```text
+[[paintai: 1girl, white dress, garden, sunlight, anime style]]
+```
+
+4. 扩展在 AI 消息渲染后读取标签，自动调用 PaintAI，并按“完成后加入当前聊天”设置保存图片。
+
+只识别明确标签，不会把普通聊天全文发送到出图接口。手动模式可点击“读取最近 AI 回复”，确认提示词后再点击生成。
+
+## 七、手机使用
 
 手机不能直接访问电脑上的 `127.0.0.1`。需要让运行 SillyTavern 的电脑提供局域网或公网 HTTPS 地址，并确认：
 
@@ -79,7 +101,7 @@ https://www.r67831767.nyat.app:19088
 
 手机端填写的 PaintAI 服务地址仍是网站根地址，不是酒馆地址。
 
-## 七、常见问题
+## 八、常见问题
 
 ### 扩展设置里没有 PaintAI
 
@@ -126,7 +148,7 @@ M:\SillyTavern\plugins\paintai-bridge\config.json
 
 网站会在出图请求开始时按现有规则扣除额度。取消或上游失败不保证退款，建议先用“检查连接 / 额度”确认 Token 状态，再提交生成。
 
-## 八、卸载
+## 九、卸载
 
 删除以下两个目录后重启酒馆：
 
@@ -137,7 +159,7 @@ M:\SillyTavern\plugins\paintai-bridge
 
 不要因为卸载 PaintAI 而关闭其他插件依赖的全局服务端插件开关。原配置可从 `M:\SillyTavern\backups\paintai-install-时间戳` 恢复或对照。
 
-## 九、开发验证
+## 十、开发验证
 
 在插件项目根目录执行：
 
