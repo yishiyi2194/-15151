@@ -3,3 +3,6 @@ verification/tavern-runtime/
 
 # Local archive kept as a rollback copy while refreshing the distributable ZIP.
 PaintAI-SillyTavern-1.0.0.before-tutorial.zip
+
+# Timestamped local release copies; keep the stable 1.1.0 package if desired.
+PaintAI-SillyTavern-1.1.0-*.zip
