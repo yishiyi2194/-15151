@@ -1,9 +1,13 @@
 import { DEFAULTS, MODELS, SIZES, SAMPLERS, normalizeBaseUrl, normalizeToken, buildPayload, decodeImage, readImageStream, bridgeRequest, safeError } from './api.js';
 import { chatKey, saveImageToChat, verifyChatImage, uploadImage } from './chat.js';
+import { extractImagePrompts, extractImagePromptsFromMessage, scenePromptKey } from './scene.js';
 
 const KEY = 'paintai_bridge';
 const context = () => SillyTavern.getContext();
 let root, activeController, lastResult, previewUrl, chatEpoch = 0, enabled = true, busy = false;
+let sceneRunning = false;
+let sceneQueue = [];
+const seenScenePrompts = new Set();
 const $ = name => root.querySelector(`[data-field="${name}"]`);
 const status = (text, error = false) => {
     $('status').textContent = text;
@@ -38,6 +42,7 @@ function setBusy(value, cancelable = true) {
     $('check').disabled = value;
     $('cancel').hidden = !value || !cancelable;
     $('add').disabled = value || !lastResult || lastResult.added;
+    $('read').disabled = value;
 }
 
 function preview(image, final = false) {
@@ -148,6 +153,74 @@ async function generate(promptOverride) {
     }
 }
 
+function enqueueScenePrompts(prompts, targetKey, messageId) {
+    const added = [];
+    for (const prompt of prompts) {
+        const key = scenePromptKey(targetKey, messageId, prompt);
+        if (seenScenePrompts.has(key)) continue;
+        seenScenePrompts.add(key);
+        sceneQueue.push({ prompt, targetKey, messageId });
+        added.push(prompt);
+    }
+    if (added.length && !sceneRunning) void drainSceneQueue();
+    return added;
+}
+
+async function drainSceneQueue() {
+    if (sceneRunning) return;
+    sceneRunning = true;
+    try {
+        while (sceneQueue.length && enabled) {
+            const item = sceneQueue.shift();
+            if (!item || item.targetKey !== chatKey(context())) continue;
+            $('prompt').value = item.prompt;
+            status('检测到图片标签，正在自动出图…');
+            await generate(item.prompt);
+        }
+    } finally {
+        sceneRunning = false;
+    }
+}
+
+function lastAssistantMessage() {
+    const messages = context().chat || [];
+    for (let index = messages.length - 1; index >= 0; index--) {
+        const message = messages[index];
+        if (message && !message.is_user && !message.is_system && typeof message.mes === 'string') {
+            return { message, index };
+        }
+    }
+    return null;
+}
+
+function readLatestMessage() {
+    const latest = lastAssistantMessage();
+    if (!latest) {
+        status('当前聊天没有可读取的 AI 回复。', true);
+        return [];
+    }
+    const prompts = extractImagePrompts(latest.message.mes, Number(settings().sceneMaxImages));
+    if (!prompts.length) {
+        status('最近的 AI 回复没有明确的图片标记。可让世界书输出 [[paintai: ...]]。', true);
+        return [];
+    }
+    $('prompt').value = prompts[0];
+    status(`已从最近回复读取 ${prompts.length} 条图片提示词；点击“生成图片”开始。`);
+    return prompts;
+}
+
+function processRenderedMessage(messageId) {
+    const options = settings();
+    if (!options.autoScene) return;
+    const index = Number(messageId);
+    const message = Number.isInteger(index) ? context().chat?.[index] : null;
+    if (!message) return;
+    const prompts = extractImagePromptsFromMessage(message, Number(options.sceneMaxImages));
+    if (!prompts.length) return;
+    const added = enqueueScenePrompts(prompts, chatKey(context()), index);
+    if (added.length > 1) status(`检测到 ${added.length} 条图片提示词，将按顺序生成。`);
+}
+
 export async function init() {
     if (root) return;
     const host = document.querySelector('#extensions_settings2') || document.querySelector('#extensions_settings');
@@ -175,14 +248,18 @@ export async function init() {
               <label>种子（-1 为随机）<input class="text_pole" data-field="seed" type="number" min="-1" max="4294967295" step="1"></label>
               <label>负面提示词<textarea class="text_pole" data-field="negative" rows="3" maxlength="12000"></textarea></label>
             </details>
-            <label class="paintai-checkbox"><input type="checkbox" data-field="autoSend">完成后加入当前聊天</label>
+              <label class="paintai-checkbox"><input type="checkbox" data-field="autoSend">完成后加入当前聊天</label>
+            <label class="paintai-checkbox"><input type="checkbox" data-field="autoScene">检测到图片标签后自动生成</label>
+            <label>每条 AI 回复最多自动生成<input class="text_pole" data-field="sceneMaxImages" type="number" min="1" max="3" step="1"></label>
           </fieldset>
           <div class="paintai-actions">
             <button class="menu_button" type="button" data-field="check">检查连接 / 额度</button>
             <button class="menu_button paintai-primary" type="button" data-field="generate">生成图片</button>
             <button class="menu_button" type="button" data-field="cancel" hidden>取消等待</button>
+            <button class="menu_button" type="button" data-field="read">读取最近 AI 回复</button>
           </div>
           <p data-field="status" class="paintai-status" role="status" aria-live="polite">填写 URL 和 Token 后检查连接。也可输入 /paintai 提示词 出图。</p>
+          <p class="paintai-hint">自动出图只识别 [[paintai: 提示词]]、【文生图】提示词或 &lt;paintai&gt;提示词&lt;/paintai&gt;。建议配合世界书使用。</p>
           <p class="paintai-hint">出图沿用网站扣额规则；取消等待不保证上游停止或退额。</p>
           <figure data-field="preview" hidden>
             <figcaption data-field="previewLabel">生成结果</figcaption>
@@ -210,6 +287,7 @@ export async function init() {
     $('check').addEventListener('click', checkQuota);
     $('generate').addEventListener('click', () => { void generate(); });
     $('cancel').addEventListener('click', () => activeController?.abort(new Error('已取消等待；上游是否扣额请通过额度检查确认。')));
+    $('read').addEventListener('click', () => { readLatestMessage(); });
     $('add').addEventListener('click', async () => {
         setBusy(true, false);
         try { await addToChat(); } catch (error) {
@@ -218,13 +296,31 @@ export async function init() {
         } finally { setBusy(false); }
     });
     const ctx = context();
-    ctx.eventSource.on(ctx.eventTypes.CHAT_CHANGED, () => { chatEpoch++; });
+    ctx.eventSource.on(ctx.eventTypes.CHAT_CHANGED, () => { chatEpoch++; sceneQueue = []; seenScenePrompts.clear(); });
+    if (ctx.eventTypes.CHARACTER_MESSAGE_RENDERED) {
+        ctx.eventSource.on(ctx.eventTypes.CHARACTER_MESSAGE_RENDERED, messageId => processRenderedMessage(messageId));
+    }
     ctx.SlashCommandParser.addCommandObject(ctx.SlashCommand.fromProps({
         name: 'paintai', callback: (_args, value) => generate(String(value || '')),
         unnamedArgumentList: [ctx.SlashCommandArgument.fromProps({
             description: '画面提示词', typeList: [ctx.ARGUMENT_TYPE.STRING], isRequired: true,
         })],
         helpString: '通过 PaintAI 生成图片并保存到聊天。先在扩展设置填写 URL 和 Token。',
+    }));
+    ctx.SlashCommandParser.addCommandObject(ctx.SlashCommand.fromProps({
+        name: 'paintai-text', callback: (_args, value) => {
+            const prompts = extractImagePrompts(String(value || ''), Number(settings().sceneMaxImages));
+            if (!prompts.length) {
+                status('文字中没有明确的图片标记。格式示例：[[paintai: 1girl, garden]]。', true);
+                return '';
+            }
+            enqueueScenePrompts(prompts, chatKey(context()), `slash-${Date.now()}`);
+            return '';
+        },
+        unnamedArgumentList: [ctx.SlashCommandArgument.fromProps({
+            description: '包含图片标记的文字', typeList: [ctx.ARGUMENT_TYPE.STRING], isRequired: true,
+        })],
+        helpString: '从文字中提取 [[paintai: ...]] 等标记并生成图片。',
     }));
     window.addEventListener('pagehide', () => {
         enabled = false; activeController?.abort(new Error('页面已关闭。'));
