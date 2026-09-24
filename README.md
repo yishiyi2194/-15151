@@ -1,8 +1,10 @@
 # PaintAI 酒馆出图插件
 
-填写 PaintAI 网站 URL 和项目 Token，在 SillyTavern 中生成图片，预览、下载并加入当前聊天。使用现有 PaintAI 账号池和计费接口，不需要更改 Java 后端。
+填写 PaintAI 网站 URL 和项目 Token，在 SillyTavern 中生成图片，预览、下载并加入当前聊天。也支持通过 Git URL 安装前端扩展、导入配套世界书，并从 AI 回复中的明确图片标签触发出图。使用现有 PaintAI 账号池和计费接口，不需要更改 Java 后端。
 
 完整安装和使用步骤见 [`TUTORIAL.md`](TUTORIAL.md)。
+
+本项目按公开接口和用户自有 PaintAI 服务独立实现；参考教程只用于确认 SillyTavern 的安装入口和世界书使用方式，不包含参考仓库源码、资源或原文复制。
 
 ## 安装
 
@@ -13,7 +15,13 @@
 - `extension/` → `SillyTavern/public/scripts/extensions/third-party/paintai/`
 - `server-plugin/` 的运行文件 → `SillyTavern/plugins/paintai-bridge/`
 
-### Windows 安装脚本
+### 方式一：通过 Git URL 安装前端
+
+在 SillyTavern 的扩展安装器中粘贴你的 Git 仓库地址。仓库根目录必须包含本项目的 `manifest.json`；酒馆会自动加载 `extension/index.js` 和 `extension/style.css`。
+
+Git 安装器只安装浏览器扩展，不能替代酒馆服务端插件。仍需把 `server-plugin/` 安装到酒馆的 `plugins/paintai-bridge/`，可使用下面的脚本完成。
+
+### 方式二：Windows 安装脚本
 
 解压安装包后，在该目录打开 PowerShell，执行：
 
@@ -23,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -TavernRoot 'M:\SillyTave
 
 脚本检查版本、复制插件、将酒馆 `config.yaml` 中 `enableServerPlugins` 改为 `true`。原配置和已存在的同名插件备份到酒馆 `backups/paintai-install-时间戳/`，不修改角色、聊天或 API 密钥。随后手动重启酒馆并刷新页面。
 
-也可以按上面目录手动复制，并手动设置 `enableServerPlugins: true`。本安装包没有发布到 Git 仓库，不能直接把本地 ZIP 粘贴进“通过 URL 安装扩展”。
+也可以按上面目录手动复制，并手动设置 `enableServerPlugins: true`。
 
 ## 使用
 
@@ -34,16 +42,25 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -TavernRoot 'M:\SillyTave
 5. 打开角色或群组聊天，填写画面提示词，点击“生成图片”；或者发送 `/paintai 1girl, garden, sunlight`。
 6. 最终图片保存到酒馆图片目录，并在当前聊天中显示。也可先取消“完成后加入当前聊天”，生成后下载或手动加入。
 
+### 从世界书/文字自动出图
+
+1. 将 `worldbook/paintai-worldbook.json` 导入酒馆世界书并启用。
+2. 在扩展中勾选“检测到图片标签后自动生成”。这个开关默认关闭，避免普通聊天误扣额度。
+3. 让 AI 在确实需要插图时输出明确标记，例如：`[[paintai: 1girl, white dress, garden, sunlight]]`。
+4. 插件只解析明确标记，不会把整段普通聊天直接当作提示词。支持 `[[paintai: ...]]`、`[[绘图: ...]]`、`【文生图】...` 和 `<paintai>...</paintai>`。
+
+也可以关闭自动开关，点击“读取最近 AI 回复”检查标签，再手动点击“生成图片”。命令 `/paintai-text [[paintai: 1girl, garden]]` 可从一段文字中提取标签并生成。
+
 Token 仅在当前页面内存和本次请求中使用，刷新页面需重新填写；不会保存到插件设置、聊天、源码或安装包。普通参数会保存到酒馆账户设置。
 
 ## 范围和行为
 
 - 当前提供单张文生图，支持 NovelAI 4.5 Full / Curated、网站已有五种尺寸、1–28 步、CFG 1–30。
-- 不接管原生 `/imagine`，使用独立 `/paintai` 命令。不会自动读取聊天内容或自动触发付费出图。
+- 不接管原生 `/imagine`，使用独立 `/paintai` 命令。自动模式只处理明确图片标签，且默认关闭。
 - 同一页面只执行一个请求，生成失败不自动重试。只有完整 `final` 图片才作为成功，断流的中间图不会被误存为结果。
 - 生成期间切换聊天，图片保留在面板，避免误写进另一聊天；可手动“加入当前聊天”。
 - 取消会终止等待和酒馆转发连接，但现有 PaintAI 服务预先扣额，取消或失败不保证退款。可检查额度后自行决定是否重试。
-- 参考图、图生图、角色参考和模型自动读取剧情不在本版本范围内。
+- 参考图、图生图、角色参考和直接理解整段剧情不在本版本范围内；剧情到提示词的转换由世界书和模型完成。
 
 ## 为什么需要服务端插件
 
