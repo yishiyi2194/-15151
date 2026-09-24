@@ -1,0 +1,28 @@
+{
+  "name": "PaintAI 图片标签世界书",
+  "description": "让模型在需要插图时输出 PaintAI 可识别的图片标签。",
+  "entries": {
+    "0": {
+      "uid": 0,
+      "key": ["文生图", "插图", "画面", "生成图片"],
+      "keysecondary": [],
+      "comment": "PaintAI 图片标签输出规则",
+      "content": "当用户明确要求插图、文生图或画面预览时，根据当前场景提取一条适合 NovelAI 的英文标签提示词。只在确实需要图片时输出一行，格式必须是 [[paintai: English prompt]]。提示词包含人物数量、角色外观、服装、动作、表情、场景、镜头、光线和画风；使用逗号分隔的标签，不要把故事正文放进标签，不要输出多个不同格式的图片标记。没有明确插图需求时不要输出 [[paintai: ...]]。",
+      "constant": false,
+      "selective": true,
+      "selectiveLogic": 0,
+      "order": 100,
+      "position": 4,
+      "disable": false,
+      "probability": 100,
+      "depth": 4,
+      "scanDepth": null,
+      "caseSensitive": false,
+      "matchWholeWords": false,
+      "useGroupScoring": false,
+      "automationId": "",
+      "role": null,
+      "vectorized": false
+    }
+  }
+}

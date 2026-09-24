@@ -8,6 +8,8 @@ export const DEFAULTS = Object.freeze({
     seed: -1,
     negative: 'blurry, lowres, worst quality, bad quality, jpeg artifacts, watermark, logo',
     autoSend: true,
+    autoScene: false,
+    sceneMaxImages: 1,
 });
 export const MODELS = ['nai-diffusion-4-5-full', 'nai-diffusion-4-5-curated'];
 export const SIZES = ['832x1216', '1216x832', '1024x1024', '1024x768', '512x768'];

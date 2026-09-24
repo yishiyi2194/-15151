@@ -3,8 +3,8 @@
   "loading_order": 20,
   "requires": [],
   "optional": [],
-  "js": "index.js",
-  "css": "style.css",
+  "js": "extension/index.js",
+  "css": "extension/style.css",
   "author": "PaintAI",
   "version": "1.1.0",
   "minimum_client_version": "1.13.3"
