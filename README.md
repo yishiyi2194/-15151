@@ -2,7 +2,13 @@
 
 填写 PaintAI 网站 URL 和项目 Token，在 SillyTavern 中生成图片，预览、下载并加入当前聊天。也支持通过 Git URL 安装前端扩展、导入配套世界书，并从 AI 回复中的明确图片标签触发出图。使用现有 PaintAI 账号池和计费接口，不需要更改 Java 后端。
 
-完整安装和使用步骤见 [`TUTORIAL.md`](TUTORIAL.md)。
+简明安装步骤见 [`UNIVERSAL-TUTORIAL.md`](UNIVERSAL-TUTORIAL.md)，世界书单独说明见 [`WORLD-BOOK.md`](WORLD-BOOK.md)。配套世界书文件位于 [`worldbook/paintai-worldbook.json`](worldbook/paintai-worldbook.json)。
+
+手机端可安装 Violentmonkey 用户脚本，无需在手机上运行 Node.js 桥接服务。直接使用 [`MOBILE-TUTORIAL.md`](MOBILE-TUTORIAL.md) 和下面的脚本链接：
+
+```text
+https://raw.githubusercontent.com/yishiyi2194/-15151/main/paintai-mobile.user.js
+```
 
 本项目按公开接口和用户自有 PaintAI 服务独立实现；参考教程只用于确认 SillyTavern 的安装入口和世界书使用方式，不包含参考仓库源码、资源或原文复制。
 
